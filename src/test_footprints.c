@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <dwarfidl/parser_includes.h>
-#include "liballocs.h"
+#include <liballocs/liballocs.h>
 #include "footprints.h"
 
 typedef ANTLR3_TOKEN_SOURCE TokenSource;

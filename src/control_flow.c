@@ -6,7 +6,7 @@
 #include <sys/types.h>
 
 #include <dwarfidl/parser_includes.h>
-#include "liballocs.h"
+#include <liballocs/liballocs.h>
 #include "footprints.h"
 
 struct expr *eval_for_loop(struct evaluator_state *state, struct expr *e, struct env_node *env) {

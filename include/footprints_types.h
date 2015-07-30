@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "uniqtype.h"
+#include <liballocs/uniqtype.h>
 
 #include "footprints_enums.h"
 

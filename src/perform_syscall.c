@@ -15,12 +15,14 @@
 
 #include <link.h>
 #include <elf.h>
-#include <relf.h>
+#include <liballocs/relf.h>
 #include <dwarfidl/parser_includes.h>
-#include "liballocs.h"
+#include <liballocs/liballocs.h>
 #include "footprints.h"
 
 #include "perform_syscall.h"
+
+#include <dlfcn.h>
 
 #define SYSCALL_NAME_LEN 32
 
@@ -405,9 +407,10 @@ static struct uniqtype *uniqtype_for_syscall(int syscall_num)
 	strncat(name_buf + sizeof prefix - 1, syscall_name, sizeof name_buf - sizeof prefix + 1);
 	name_buf[sizeof name_buf - 1] = '\0';
 	
-	struct uniqtype **found_ifacetype = sym_to_addr(hash_lookup_local(name_buf));
+	struct uniqtype **found_ifacetype = dlsym(RTLD_DEFAULT, name_buf);
+/*	struct uniqtype **found_ifacetype = sym_to_addr(hash_lookup_local(name_buf));
 	if (!found_ifacetype) found_ifacetype = sym_to_addr(symbol_lookup_linear_local(name_buf));
-	assert(found_ifacetype);
+	assert(found_ifacetype);*/
 /*	if (!found_ifacetype)
 	{
 		debug_printf(1, "No ifacetype for syscall %s (check kernel DWARF)\n", name_buf);

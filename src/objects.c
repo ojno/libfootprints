@@ -6,8 +6,8 @@
 #include <sys/types.h>
 
 #include <dwarfidl/parser_includes.h>
-#include "liballocs.h"
-#include "uniqtype.h"
+#include <liballocs/liballocs.h>
+#include <liballocs/uniqtype.h>
 #include "footprints.h"
 
 int64_t transmogrify_pointer(struct uniqtype *type, void *bytes) {

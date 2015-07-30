@@ -1,0 +1,15 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+pkgincludedir=${includedir}/@PACKAGE@
+pkglibdir=@pkglibdir@
+datarootdir=@datarootdir@
+datadir=@datadir@
+
+Name: libfootprints
+Description: Parsing and evaluating dwarfidl memory footprint expressions and making syscalls based on them. See also trap-syscalls
+Version: 0.1
+Requires: dwarfidl liballocs
+Cflags: -I${includedir}/libfootprints
+Libs: -L${libdir} -lfootprints
