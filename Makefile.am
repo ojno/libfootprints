@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CFLAGS = -std=gnu99 -ggdb3 -O0 -Iinclude -Isrc -fPIC -DPIC -Wall  -Wno-unused-variable -Wno-unused-but-set-variable -Werror -ffreestanding -fno-omit-frame-pointer $(LIBALLOCS_CFLAGS) $(DWARFIDL_CFLAGS)
+AM_CFLAGS = -std=gnu99 -ggdb -O0 -Iinclude -Isrc -fPIC -DPIC -Wall  -Wno-unused-variable -Wno-unused-but-set-variable -Werror -ffreestanding -fno-omit-frame-pointer $(LIBALLOCS_CFLAGS) $(DWARFIDL_CFLAGS)
 AM_LDFLAGS = $(LIBALLOCS_LIBS) $(DWARFIDL_LIBS) -lantlr3c -ldl
 
 extra_DIST = libfootprints.pc.in
