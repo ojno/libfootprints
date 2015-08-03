@@ -1,6 +1,8 @@
-/footprints/ocaml/_build/
-/footprints/ocaml/ocaml_test_syscalls.native
-/footprints/dynamic-list
+/src/ocaml/_build/
+/src/ocaml/ocaml_test_syscalls.native
+/src/dynamic-list
+/src/test_footprints
+/src/test_syscalls
 *.allocstubs.c
 *.allocstubs.s
 *.cil.c
@@ -15,20 +17,6 @@
 *.i.allocs
 *.o.fixuplog
 *.swp
-
-tests/alloca/alloca
-tests/offsetof/offsetof
-tests/section-group/section-group
-tests/simple-client/simple-client
-tests/simple-multi-alloc/simple-multi-alloc
-tests/sloppy-dumptypes/sloppy-dumptypes
-tools/allocsites
-tools/dumptypes
-tools/ifacetypes
-tools/find-allocated-type-size
-tools/lang/c/bin
-tools/lang/c/src/base-types-translation
-tools/usedtypes
 
 /Makefile
 
