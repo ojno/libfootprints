@@ -402,10 +402,10 @@ static struct uniqtype *uniqtype_for_syscall(int syscall_num)
 		return NULL;
 		}*/
 	const char prefix[] = "__ifacetype_";
-	char name_buf[SYSCALL_NAME_LEN + sizeof prefix + 1];
-	strncpy(name_buf, prefix, sizeof prefix);
-	strncat(name_buf + sizeof prefix - 1, syscall_name, sizeof name_buf - sizeof prefix + 1);
-	name_buf[sizeof name_buf - 1] = '\0';
+	char name_buf[SYSCALL_NAME_LEN + sizeof(prefix) + 1];
+	strncpy(name_buf, prefix, sizeof(prefix));
+	strncat(name_buf + sizeof(prefix) - 1, syscall_name, sizeof(name_buf) - sizeof (prefix) - 1);
+	name_buf[sizeof(name_buf) - 1] = '\0';
 	
 	struct uniqtype **found_ifacetype = dlsym(RTLD_DEFAULT, name_buf);
 /*	struct uniqtype **found_ifacetype = sym_to_addr(hash_lookup_local(name_buf));
