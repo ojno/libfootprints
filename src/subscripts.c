@@ -87,6 +87,8 @@ struct expr *eval_subscript(struct evaluator_state *state, struct expr *e, struc
 		from_success = eval_to_value(state, e->subscript.from, env, &partial_from, &from);
 		if (e->subscript.to) {
 			to_success = eval_to_value(state, e->subscript.to, env, &partial_to, &to);
+		} else {
+			to_success = false;
 		}
 
 		if (!from_success || (e->subscript.to && !to_success)) {
@@ -114,6 +116,8 @@ struct expr *eval_subscript(struct evaluator_state *state, struct expr *e, struc
 			}
 			assert(to > from);
 			length = to - from;
+		} else {
+			length = -1;
 		}
 		switch (e->subscript.method) {
 		case SUBSCRIPT_DIRECT_BYTES: {
@@ -152,11 +156,12 @@ struct expr *eval_subscript(struct evaluator_state *state, struct expr *e, struc
 				return e;
 			}
 			assert(UNIQTYPE_HAS_KNOWN_LENGTH(derefed.type));
-			size_t size = derefed.type->pos_maxoff;
 			if (e->subscript.to) {
+				assert(length > 0);
 				return construct_union(construct_size_union(derefed, from, length));
 			} else {
 				struct object new_obj = derefed;
+				size_t size = derefed.type->pos_maxoff;
 				new_obj.addr = (void*) ((size_t)derefed.addr + (from * size));
 				return construct_object(new_obj);
 			}
