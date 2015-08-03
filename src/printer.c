@@ -28,7 +28,7 @@ char *print_footprint_extents(struct footprint_node *fp, struct union_node *exte
 	size_t i = 0;
 	while (current != NULL) {
 		assert(current->expr->type == EXPR_EXTENT);
-		asprintf(&(union_str[i]), "Allowed footprint: %s n=0x%lx base=0x%lx", direction, current->expr->extent.length, current->expr->extent.base);
+		assert(asprintf(&(union_str[i]), "Allowed footprint: %s n=0x%lx base=0x%lx", direction, current->expr->extent.length, current->expr->extent.base) >= 0);
 		assert(union_str[i]);
 		total_strlen += strlen(union_str[i]);
 		i++;
@@ -69,19 +69,19 @@ char *print_expr_tree(struct expr *e) {
 	char *body = NULL;
 	switch (e->type) {
 	case EXPR_VOID: {
-		asprintf(&body, "(void)");
+		assert(asprintf(&body, "(void)") >= 0);
 	} break;
 	case EXPR_BINARY: {
-		asprintf(&body, "(%s %s %s)", print_expr_tree(e->binary_op.left), binary_ops_str[e->binary_op.op], print_expr_tree(e->binary_op.right));
+		assert(asprintf(&body, "(%s %s %s)", print_expr_tree(e->binary_op.left), binary_ops_str[e->binary_op.op], print_expr_tree(e->binary_op.right)) >= 0);
 	} break;
 	case EXPR_UNARY: {
-		asprintf(&body, "(%s %s)", unary_ops_str[e->unary_op.op], print_expr_tree(e->unary_op.arg));
+		assert(asprintf(&body, "(%s %s)", unary_ops_str[e->unary_op.op], print_expr_tree(e->unary_op.arg)) >= 0);
 	} break;
 	case EXPR_FOR: {
-		asprintf(&body, "(%s for %s in %s)", print_expr_tree(e->for_loop.body), e->for_loop.ident, print_expr_tree(e->for_loop.over));
+		assert(asprintf(&body, "(%s for %s in %s)", print_expr_tree(e->for_loop.body), e->for_loop.ident, print_expr_tree(e->for_loop.over)) >= 0);
 	} break;
 	case EXPR_IF: {
-		asprintf(&body, "(if %s then %s else %s)", print_expr_tree(e->if_cond.cond), print_expr_tree(e->if_cond.then), print_expr_tree(e->if_cond.otherwise));
+		assert(asprintf(&body, "(if %s then %s else %s)", print_expr_tree(e->if_cond.cond), print_expr_tree(e->if_cond.then), print_expr_tree(e->if_cond.otherwise)) >= 0);
 	} break;
 	case EXPR_SUBSCRIPT: {
 		char *open_bracket;
@@ -103,13 +103,13 @@ char *print_expr_tree(struct expr *e) {
 			assert(false);
 		}
 		if (e->subscript.to) {
-			asprintf(&body, "(subscript %s %s%s .. %s%s)", print_expr_tree(e->subscript.target), open_bracket, print_expr_tree(e->subscript.from), print_expr_tree(e->subscript.to), close_bracket);
+			assert(asprintf(&body, "(subscript %s %s%s .. %s%s)", print_expr_tree(e->subscript.target), open_bracket, print_expr_tree(e->subscript.from), print_expr_tree(e->subscript.to), close_bracket) >= 0);
 		} else {
-			asprintf(&body, "(subscript %s %s%s%s)", print_expr_tree(e->subscript.target), open_bracket, print_expr_tree(e->subscript.from), close_bracket);
+			assert(asprintf(&body, "(subscript %s %s%s%s)", print_expr_tree(e->subscript.target), open_bracket, print_expr_tree(e->subscript.from), close_bracket) >= 0);
 		}
 	} break;
 	case EXPR_EXTENT: {
-		asprintf(&body, "(extent base = %lx, length = %lx)", e->extent.base, e->extent.length);
+		assert(asprintf(&body, "(extent base = %lx, length = %lx)", e->extent.base, e->extent.length) >= 0);
 	} break;
 	case EXPR_FUNCTION_ARGS:
 	case EXPR_UNION: {
@@ -143,16 +143,16 @@ char *print_expr_tree(struct expr *e) {
 			cur_char = stpcpy(cur_char, union_str[i]);
 		}
 
-		asprintf(&body, (e->type == EXPR_FUNCTION_ARGS ? "(args %s)" : "(union %s)"), union_body);
+		assert(asprintf(&body, (e->type == EXPR_FUNCTION_ARGS ? "(args %s)" : "(union %s)"), union_body) >= 0);
 	} break;
 	case EXPR_OBJECT: {
-		asprintf(&body, "(object @%p of type %s)", e->object.addr, e->object.type->name);
+		assert(asprintf(&body, "(object @%p of type %s)", e->object.addr, e->object.type->name) >= 0);
 	} break;
 	case EXPR_IDENT: {
-		asprintf(&body, "%s", e->ident);
+		assert(asprintf(&body, "%s", e->ident) >= 0);
 	} break;
 	case EXPR_VALUE: {
-		asprintf(&body, "%ld", e->value);
+		assert(asprintf(&body, "%ld", e->value) >= 0);
 	} break;
 	case EXPR_FUNCTION: {
 		size_t n_args = 0;
@@ -183,7 +183,7 @@ char *print_expr_tree(struct expr *e) {
 			cur_char = stpcpy(cur_char, arg_str[i]);
 		}
 
-		asprintf(&body, "(function %s with args (%s) and expr (%s))", e->func.name, arg_body, print_expr_tree(e->func.expr));
+		assert(asprintf(&body, "(function %s with args (%s) and expr (%s))", e->func.name, arg_body, print_expr_tree(e->func.expr)) >= 0);
 	} break;
 	default:
 		assert(false);
