@@ -6,7 +6,7 @@
 #include <sys/types.h>
 
 #include <dwarfidl/parser_includes.h>
-#include <liballocs/liballocs.h>
+#include <liballocs.h>
 #include "footprints.h"
 
 const char *expr_types_str[] = {

@@ -15,9 +15,9 @@
 
 #include <link.h>
 #include <elf.h>
-#include <liballocs/relf.h>
+#include <relf.h>
 #include <dwarfidl/parser_includes.h>
-#include <liballocs/liballocs.h>
+#include <liballocs.h>
 #include "footprints.h"
 
 #include "perform_syscall.h"
