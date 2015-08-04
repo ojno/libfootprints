@@ -19,22 +19,12 @@ struct expr *eval_for_loop(struct evaluator_state *state, struct expr *e, struct
 	struct union_node *tail = NULL;
 	struct union_node *current = over->unioned;
 	while (current != NULL) {
-		struct env_node *head_env = env_new();
-		head_env->name = e->for_loop.ident;
-		head_env->expr = eval_footprint_expr(state, current->expr, env);
-		head_env->next = env;
-		struct union_node *head = union_new();
-		head->expr = eval_footprint_expr(state, e->for_loop.body, head_env);
-		head->next = tail;
-		tail = head;
+		struct env_node *loop_env = env_new_with(e->for_loop.ident, eval_footprint_expr(state, current->expr, env), env);
+		tail = union_new_with(eval_footprint_expr(state, e->for_loop.body, loop_env), tail);
 		current = current->next;
 	}
 
-	struct expr *result = expr_new();
-	result->type = EXPR_UNION;
-	result->unioned = tail;
-
-	return result;
+	return construct_union(tail);
 }
 
 struct expr *eval_if_cond(struct evaluator_state *state, struct expr *e, struct env_node *env) {
