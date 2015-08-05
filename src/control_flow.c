@@ -16,11 +16,12 @@ struct expr *eval_for_loop(struct evaluator_state *state, struct expr *e, struct
 	struct expr *over = eval_footprint_expr(state, e->for_loop.over, env);
 	assert(over->type == EXPR_UNION);
 
+	_Bool adjacent = over->unioned->adjacent;
 	struct union_node *tail = NULL;
 	struct union_node *current = over->unioned;
 	while (current != NULL) {
 		struct env_node *loop_env = env_new_with(e->for_loop.ident, eval_footprint_expr(state, current->expr, env), env);
-		tail = union_new_with(eval_footprint_expr(state, e->for_loop.body, loop_env), tail);
+		tail = union_new_with(eval_footprint_expr(state, e->for_loop.body, loop_env), adjacent, tail);
 		current = current->next;
 	}
 

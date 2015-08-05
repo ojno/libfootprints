@@ -52,8 +52,8 @@ struct extent {
 
 struct union_node {
 	struct expr *expr;
+	_Bool adjacent;
 	struct union_node *next;
-	int child_n;
 };
 
 struct function {

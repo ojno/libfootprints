@@ -59,7 +59,7 @@ struct expr *eval_footprint_expr(struct evaluator_state *state, struct expr* e, 
 	}
 }
 
-struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struct footprint_node *footprint, struct env_node *defined_functions, struct uniqtype *func, long int arg_values[6]) {
+struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struct footprint_node *footprint, struct env_node *defined_functions, struct uniqtype *func, long int arg_values[6], _Bool merge_extents) {
 
 	struct env_node *env = defined_functions;
 	for (uint8_t i = 0; i < 6; i++) {
@@ -75,31 +75,40 @@ struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struc
 		}
 	}
 
-	// eval_footprint_expr will modify *state
-	struct expr *evaled = eval_footprint_expr(state, construct_union(footprint->exprs), env);
-
-	if (state->need_memory_extents == NULL) {
-		struct union_node *result;
-		
-		if (evaled->type != EXPR_UNION) {
-			result = union_new_with(evaled, NULL);
-		} else {
-			result = evaled->unioned;
-		}
-		
-		result = union_flatten(result);
-		result = _union_remove_type(result, EXPR_VOID);
-		result = union_objects_to_extents(result);
-		union_sort(&result);
-		result = sorted_union_merge_extents(result);
-		
-		state->result = result;
+	if (footprint->exprs == NULL) {
+		state->result = NULL;
 		state->finished = true;
 		return state;
 	} else {
-		state->expr = evaled;
-		state->finished = false;
-		return state;
+		// eval_footprint_expr will modify *state
+		struct expr *evaled = eval_footprint_expr(state, construct_union(footprint->exprs), env);
+
+		if (state->need_memory_extents == NULL) {
+			struct union_node *result;
+		
+			if (evaled->type != EXPR_UNION) {
+				result = union_new_with(evaled, false, NULL);
+			} else {
+				result = evaled->unioned;
+			}
+		
+			result = union_flatten(result);
+			result = _union_remove_type(result, EXPR_VOID);
+			
+			if (merge_extents) {
+				result = union_objects_to_extents(result);
+				union_sort(&result);
+				result = sorted_union_merge_extents(result);
+			}
+		
+			state->result = result;
+			state->finished = true;
+			return state;
+		} else {
+			state->expr = evaled;
+			state->finished = false;
+			return state;
+		}
 	}
 }
 
@@ -109,7 +118,7 @@ struct evaluator_state *eval_footprints_for(struct evaluator_state *state, struc
 	struct footprint_node *fp = get_footprints_for(footprints, name);
 	if (fp != NULL) {
 		fprintf(stderr, "Evaling footprint for %s(0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx)\n", name, arg_values[0], arg_values[1], arg_values[2], arg_values[3], arg_values[4], arg_values[5]);
-		struct evaluator_state *result = eval_footprint_with(state, fp, defined_functions, func, arg_values);
+		struct evaluator_state *result = eval_footprint_with(state, fp, defined_functions, func, arg_values, true);
 		return result;
 	} else {
 		return NULL;

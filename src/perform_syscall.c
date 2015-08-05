@@ -421,24 +421,23 @@ static struct uniqtype *uniqtype_for_syscall(int syscall_num)
 	return found_uniqtype;
 }
 
-
-void do_eval_pass(struct syscall_state *state) {
-	state->eval->need_memory_extents = NULL;
-	state->eval = eval_footprint_with(state->eval, state->footprint, state->syscall_env->defined_functions, uniqtype_for_syscall(state->syscall_num), state->syscall_args);
-	if (state->eval->finished) {
-		// we have the final footprint in state->eval->result
-		struct extent_node *final_read_extents = NULL;
-		struct union_node *current = state->eval->result;
-		while (current != NULL) {
-			assert(current->expr->type == EXPR_EXTENT);
-			final_read_extents = extent_node_new_with(current->expr->extent.base, current->expr->extent.length, final_read_extents);
-			current = current->next;
+struct extent_node *concat_extents(struct union_node *head, struct extent_node *tail) {
+	struct extent_node *result = tail;
+	struct union_node *current = head;
+	while (current != NULL) {
+		if (current->expr->type == EXPR_EXTENT) {
+			result = extent_node_new_with(current->expr->extent.base,
+			                              current->expr->extent.length,
+			                              result);
+		} else if (current->expr->type == EXPR_UNION) {
+			result = concat_extents(current->expr->unioned, result);
+		} else {
+			assert(false);
 		}
-		state->need_memory_extents = final_read_extents;
-	} else {
-		// there are more dependencies to come
-		state->need_memory_extents = state->eval->need_memory_extents;
+		
+		current = current->next;
 	}
+	return result;
 }
 
 extern inline long int
@@ -504,6 +503,19 @@ void perform_syscall(struct syscall_state *state) {
 	state->finished = true;
 }
 
+void do_eval_pass(struct syscall_state *state) {
+	state->eval->need_memory_extents = NULL;
+	state->eval = eval_footprint_with(state->eval, state->footprint, state->syscall_env->defined_functions, uniqtype_for_syscall(state->syscall_num), state->syscall_args, true);
+	if (state->eval->finished) {
+		// we have the final footprint in state->eval->result
+		state->need_memory_extents = concat_extents(state->eval->result, NULL);
+	} else {
+		// there are more dependencies to come
+		state->need_memory_extents = state->eval->need_memory_extents;
+	}
+}
+
+
 struct evaluator_state *evaluator_state_new() {
 	struct evaluator_state *result = malloc(sizeof(struct evaluator_state));
 	memset(result, 0, sizeof(struct evaluator_state));
@@ -529,12 +541,8 @@ struct evaluator_state *evaluator_state_new_with(struct expr *expr,
 struct syscall_state *start_syscall(struct syscall_env *syscall_env, size_t syscall_num, long int syscall_args[6]) {
 	assert(syscall_num >= 0 && syscall_num < sizeof(syscall_names));
 	char *syscall_name = (char*)syscall_names[syscall_num];
-	/*char *syscall_name = malloc(strlen(syscall_names[syscall_num]) + strlen("sys_") + 1);
-	strcpy(syscall_name, "sys_");
-	strcpy(syscall_name + strlen("sys_"), syscall_names[syscall_num]);*/
 	struct footprint_node *footprint = get_footprints_for(syscall_env->footprints, syscall_name);
 	assert(footprint);
-	//free(syscall_name);
 	struct evaluator_state *eval = evaluator_state_new_with(construct_union(footprint->exprs),
 	                                                        syscall_env->defined_functions,
 	                                                        NULL,

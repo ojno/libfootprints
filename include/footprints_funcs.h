@@ -35,7 +35,7 @@ void print_tree_types(void *ast);
 ////////////////////////////////////////////////////////////
 
 struct evaluator_state *eval_footprints_for(struct evaluator_state *state, struct footprint_node *footprints, struct env_node *defined_functions, const char *name, struct uniqtype *func, long int arg_values[6]);
-struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struct footprint_node *footprint, struct env_node *defined_functions, struct uniqtype *func, long int arg_values[6]);
+struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struct footprint_node *footprint, struct env_node *defined_functions, struct uniqtype *func, long int arg_values[6], _Bool merge_extents);
 
 struct expr *eval_footprint_expr(struct evaluator_state *state, struct expr *e, struct env_node *env);
 
@@ -118,7 +118,7 @@ struct expr *lookup_in_env(struct env_node *env, char *ident);
 ////////////////////////////////////////////////////////////
 
 struct union_node *union_new();
-struct union_node *union_new_with(struct expr *e, struct union_node *next);
+struct union_node *union_new_with(struct expr *e, _Bool adjacent, struct union_node *next);
 void union_free_node(struct union_node **node);
 
 struct union_node *union_union(struct union_node *first, struct union_node *second);
@@ -130,6 +130,7 @@ struct union_node *union_objects_to_extents(struct union_node *head);
 struct union_node *sorted_union_merge_extents(struct union_node *head);
 
 struct union_node *_union_remove_type(struct union_node *head, enum expr_types type);
+void *_get_first_addr(struct union_node *node);
 
 ////////////////////////////////////////////////////////////
 // footprints

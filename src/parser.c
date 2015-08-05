@@ -131,7 +131,7 @@ struct footprint_node *new_from_subprogram_DIE(void *ptr, struct footprint_node 
 							default:
 								assert(false);
 							}
-							exprs = union_new_with(parse_antlr_tree(GET_CHILD(clause, 1)), exprs);
+							exprs = union_new_with(parse_antlr_tree(GET_CHILD(clause, 1)), false, exprs);
 						}
 
 					} else {
@@ -249,6 +249,7 @@ struct expr *parse_antlr_tree(void *ptr) {
 	ANTLR3_BASE_TREE *ast = (ANTLR3_BASE_TREE*)ptr;
 	assert(ast);
 	struct expr *e = expr_new();
+	_Bool union_adjacent = false; // only applicable to unions, obviously
 	switch (GET_TYPE(ast)) {
 	case FP_GT:
 	case FP_LT:
@@ -295,6 +296,10 @@ struct expr *parse_antlr_tree(void *ptr) {
 		break;
 	case FP_UNION:
 		e->type = EXPR_UNION;
+		break;
+	case FP_ADJACENT:
+		e->type = EXPR_UNION;
+		union_adjacent = true;
 		break;
 	case FP_VOID:
 		e->type = EXPR_VOID;
@@ -452,14 +457,14 @@ struct expr *parse_antlr_tree(void *ptr) {
 	case EXPR_FUNCTION_ARGS: { // function args are just a union, but must be the right way around
 		struct union_node *tail = NULL;
 		for (int i = GET_CHILD_COUNT(ast) - 1; i >= 0; i--) {
-			tail = union_new_with(parse_antlr_tree(GET_CHILD(ast, i)), tail);
+			tail = union_new_with(parse_antlr_tree(GET_CHILD(ast, i)), false, tail);
 		}
 		e->unioned = tail;
 	} break;
 	case EXPR_UNION: {
 		struct union_node *tail = NULL;
 		FOR_ALL_CHILDREN(ast) {
-			tail = union_new_with(parse_antlr_tree(n), tail);
+			tail = union_new_with(parse_antlr_tree(n), union_adjacent, tail);
 		}
 		e->unioned = tail;
 	} break;

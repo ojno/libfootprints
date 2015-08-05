@@ -27,7 +27,7 @@ struct union_node *construct_bytes_union(struct object obj, size_t base, size_t 
 		new_byte->object.type = byte_type;
 		new_byte->object.addr = (void*)ptr;
 		new_byte->object.direct = false;
-		struct union_node *head = union_new_with(new_byte, tail);
+		struct union_node *head = union_new_with(new_byte, true, tail);
 		tail = head;
 	}
 	return tail;
@@ -45,7 +45,7 @@ struct union_node *construct_size_union(struct object obj, size_t base, size_t l
 		new_obj->object.type = obj.type;
 		new_obj->object.addr = (void*)ptr;
 		new_obj->object.direct = false;
-		struct union_node *head = union_new_with(new_obj, tail);
+		struct union_node *head = union_new_with(new_obj, true, tail);
 		tail = head;
 	}
 	return tail;

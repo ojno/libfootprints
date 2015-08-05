@@ -143,7 +143,16 @@ char *print_expr_tree(struct expr *e) {
 			cur_char = stpcpy(cur_char, union_str[i]);
 		}
 
-		assert(asprintf(&body, (e->type == EXPR_FUNCTION_ARGS ? "(args %s)" : "(union %s)"), union_body) >= 0);
+		char *format_str;
+		if (e->type == EXPR_FUNCTION_ARGS) {
+			format_str = "(args %s)";
+		} else if (e->unioned->adjacent) {
+			format_str = "(adjacent %s)";
+		} else {
+			format_str = "(union %s)";
+		}
+
+		assert(asprintf(&body, format_str, union_body) >= 0);
 	} break;
 	case EXPR_OBJECT: {
 		assert(asprintf(&body, "(object @%p of type %s)", e->object.addr, e->object.type->name) >= 0);
