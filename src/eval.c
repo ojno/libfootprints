@@ -59,7 +59,7 @@ struct expr *eval_footprint_expr(struct evaluator_state *state, struct expr* e, 
 	}
 }
 
-struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struct footprint_node *footprint, struct env_node *defined_functions, struct uniqtype *func, long int arg_values[6], _Bool merge_extents) {
+struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struct footprint_node *footprint, struct env_node *defined_functions, struct uniqtype *func, long int arg_values[6], _Bool merge_extents, enum footprint_direction filter_direction) {
 
 	struct env_node *env = defined_functions;
 	for (uint8_t i = 0; i < 6; i++) {
@@ -71,7 +71,7 @@ struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struc
 			o.addr = arg_values + i;
 			o.direct = true;
 			//fprintf(stderr, "created arg %s with type %s and typed value 0x%lx from untyped 0x%lx\n", footprint->arg_names[i], o.type->name, object_to_value(state, o), arg_values[i]);
-			env = env_new_with(footprint->arg_names[i], construct_object(o), env);
+			env = env_new_with(footprint->arg_names[i], construct_object(o, FP_DIRECTION_UNKNOWN), env);
 		}
 	}
 
@@ -81,7 +81,7 @@ struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struc
 		return state;
 	} else {
 		// eval_footprint_expr will modify *state
-		struct expr *evaled = eval_footprint_expr(state, construct_union(footprint->exprs), env);
+		struct expr *evaled = eval_footprint_expr(state, construct_union(footprint->exprs, FP_DIRECTION_UNKNOWN), env);
 
 		if (state->need_memory_extents == NULL) {
 			struct union_node *result;
@@ -94,7 +94,24 @@ struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struc
 		
 			result = union_flatten(result);
 			result = _union_remove_type(result, EXPR_VOID);
-			
+
+			switch (filter_direction) {
+			case FP_DIRECTION_READWRITE:
+				break;
+			case FP_DIRECTION_READ:
+				result = _union_remove_direction(result, FP_DIRECTION_WRITE);
+				break;
+			case FP_DIRECTION_WRITE:
+				result = _union_remove_direction(result, FP_DIRECTION_READ);
+				break;
+			case FP_DIRECTION_UNKNOWN:
+				result = _union_remove_direction(result, FP_DIRECTION_READ);
+				result = _union_remove_direction(result, FP_DIRECTION_WRITE);
+				break;
+			default:
+				assert(false);
+			}
+
 			if (merge_extents) {
 				result = union_objects_to_extents(result);
 				union_sort(&result);
@@ -118,7 +135,7 @@ struct evaluator_state *eval_footprints_for(struct evaluator_state *state, struc
 	struct footprint_node *fp = get_footprints_for(footprints, name);
 	if (fp != NULL) {
 		fprintf(stderr, "Evaling footprint for %s(0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx)\n", name, arg_values[0], arg_values[1], arg_values[2], arg_values[3], arg_values[4], arg_values[5]);
-		struct evaluator_state *result = eval_footprint_with(state, fp, defined_functions, func, arg_values, true);
+		struct evaluator_state *result = eval_footprint_with(state, fp, defined_functions, func, arg_values, true, FP_DIRECTION_READWRITE);
 		return result;
 	} else {
 		return NULL;

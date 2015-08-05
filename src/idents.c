@@ -44,7 +44,7 @@ void env_free(struct env_node *first) {
 }
 
 
-struct expr *lookup_in_object(struct object *context, char *ident) {
+struct expr *lookup_in_object(struct object *context, char *ident, enum footprint_direction direction) {
 	assert(context != NULL);
 	assert(context->type != NULL);
 	struct object obj;
@@ -54,7 +54,7 @@ struct expr *lookup_in_object(struct object *context, char *ident) {
 			obj.type = context->type->contained[i].ptr;
 			obj.addr = (void*) context->addr + context->type->contained[i].offset;
 			obj.direct = false;
-			return construct_object(obj);
+			return construct_object(obj, direction);
 		}
 	}
 

@@ -3,10 +3,9 @@ open Printf
 open Core.Std
 open Syscalls
 
+let read_syscall_num = 0n
 let open_syscall_num = 2n
 let close_syscall_num = 3n
-let footprints = "/home/jf451/spec.idl"
-let filename = "/bin/cat" (* just something I'm fairly sure exists *)
 
 let rec supply_syscall_footprint state extents = 
   (* This represents whatever process you go through to
@@ -28,40 +27,59 @@ let rec supply_syscall_footprint state extents =
 let do_one_syscall env num args =
   let result = Syscalls.start_syscall env num args in
   match result with 
-  | Finished (retval, _) -> retval
   | MoreDataNeeded (state, extents) ->
-     match supply_syscall_footprint state extents with
-     (* TODO: actually apply writes.
-        write_extents : extent list
-        is currently always [] because
-        pointer rewriting not impl'ed yet
-        but this will soon be rectified *)
-     | Finished (retval, write_extents) -> retval 
-     | MoreDataNeeded (_, _) -> failwith "supply_syscall_footprint returned MoreDataNeeded"
+     (match supply_syscall_footprint state extents with
+     | MoreDataNeeded (_, _) -> assert false
+     | x -> x)
+  | x -> x
+
+let extent_to_string extent =
+  sprintf "(extent: base = 0x%nx, length = 0x%nx, data = %S)" extent.base extent.length
+          (match extent.data with
+           | None -> "[]"
+            | Some data -> (Bigstring.to_string data))
+
+
+let extent_list_to_string extent_list =
+  String.concat ["["; (String.concat ~sep:", " (List.map extent_list (fun extent -> extent_to_string extent))); "]"]
               
+  
 
 let main =
-  match Syscalls.load_footprints_from_file footprints with
-  | None -> failwith "couldn't open footprints"
-  | Some env -> begin
-      (* shouldn't have to use anything from ctypes once
+  if (Array.length Sys.argv) <> 3 then
+    failwith "usage: ocaml_test_syscalls spec.idl file_to_read"
+  else let footprints = Sys.argv.(1) in
+       let filename = Sys.argv.(2) in
+       match Syscalls.load_footprints_from_file footprints with
+       | None -> failwith "couldn't open footprints"
+       | Some env -> begin
+           (* shouldn't have to use anything from ctypes once
          actually getting data from the simulator
          as you'll be passing the raw register values
          (as nativeints, if you please) *)
-     print_endline "Got footprints." ;
-     let filename_bigstring = Bigstring.of_string filename in begin
-         printf "*** %s is the filename; %d is the length of the bigstring\n"
-                filename
-                (Bigarray.Array1.dim filename_bigstring);
-         let ptr = raw_address_of_ptr
-                     (to_voidp (bigarray_start array1 filename_bigstring)) in begin
-             printf "*** 0x%nx is the address we got\n" ptr;
-             let open_args = [| ptr |] in
-             let retval = (do_one_syscall env open_syscall_num open_args) in begin
-                 printf "Got FD retval from open(): %nd\n" retval;
-                 printf "Closing it\n";
-                 do_one_syscall env close_syscall_num [| retval |]
-               end
-           end
-       end
-    end
+           print_endline "Got footprints." ;
+           let filename_bigstring = Bigstring.of_string filename in begin
+               printf "*** %s is the filename; %d is the length of the bigstring\n"
+                      filename
+                      (Bigarray.Array1.dim filename_bigstring);
+               let ptr = raw_address_of_ptr
+                           (to_voidp (bigarray_start array1 filename_bigstring)) in begin
+                   printf "*** 0x%nx is the address we got\n" ptr;
+                   let open_args = [| ptr |] in
+                   match do_one_syscall env open_syscall_num open_args with
+                   | MoreDataNeeded (_, _) -> assert false
+                   | Finished (fd, _) -> begin
+                       printf "Got FD retval from open(): %nd\n" fd;
+                       match do_one_syscall env read_syscall_num [| fd; 1n; 10n |] with
+                       | MoreDataNeeded (_, _) -> assert false
+                       | Finished (read_length, write_extents) -> begin
+                           printf "*** Read %nd bytes of 10 from fd %nd: %s\n"
+                                  read_length fd (extent_list_to_string write_extents);
+                           printf "Closing it\n";
+                           do_one_syscall env close_syscall_num [| fd |]
+                         end
+                     end
+                 end
+             end
+         end
+                       

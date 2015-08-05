@@ -25,7 +25,7 @@ struct expr *eval_for_loop(struct evaluator_state *state, struct expr *e, struct
 		current = current->next;
 	}
 
-	return construct_union(tail);
+	return construct_union(tail, e->direction);
 }
 
 struct expr *eval_if_cond(struct evaluator_state *state, struct expr *e, struct env_node *env) {

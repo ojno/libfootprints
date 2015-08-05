@@ -39,13 +39,30 @@ int64_t transmogrify_pointer(struct uniqtype *type, void *bytes) {
 	}
 }
 
+void *_find_in_cache(struct evaluator_state *state, size_t addr, size_t size) {
+	// traverse the have_extents list looking for what we need
+	struct data_extent_node *current = state->have_memory_extents;
+	fprintf(stderr, "looking in cache for memory extent base = 0x%16lx, length = 0x%8x\n", (size_t)addr, size);
+	while (current != NULL) {
+		fprintf(stderr, "considering base = 0x%16lx, length = 0x%16lx\n", current->extent.base, current->extent.length);
+		if ((size_t)addr >= current->extent.base
+		    && ((size_t)addr + size) <= (current->extent.base + current->extent.length)) {
+			// this extent contains it
+			fprintf(stderr, "found it in base = 0x%16lx, length = 0x%16lx\n", current->extent.base, current->extent.length);
+			return (void*)(current->extent.data + (((size_t)addr) - current->extent.base));
+		}
+		current = current->next;
+	}
+
+	// not found
+	return NULL;
+}
+
 // returns true if succeeded, false if added to needed_list
 _Bool object_to_value(struct evaluator_state *state, struct object object, int64_t *out_result) {
 	struct uniqtype *type = object.type;
 	void *addr = object.addr;
 	assert(UNIQTYPE_HAS_KNOWN_LENGTH(type));
-	// traverse the have_extents list looking for what we need
-	struct data_extent_node *current = state->have_memory_extents;
 
 	fprintf(stderr, "trying to object_to_value a '%s' at 0x%16lx (direct: %s)\n",
 	        type->name, (size_t)addr, (object.direct ? "yes" : "no"));
@@ -55,26 +72,15 @@ _Bool object_to_value(struct evaluator_state *state, struct object object, int64
 		*out_result = transmogrify_pointer(type, addr);
 		return true;
 	} else {
-		fprintf(stderr, "looking in cache for memory extent base = 0x%16lx, length = 0x%8x\n", (size_t)addr, type->pos_maxoff);
-		while (current != NULL) {
-			fprintf(stderr, "considering base = 0x%16lx, length = 0x%16lx\n", current->extent.base, current->extent.length);
-			if ((size_t)addr >= current->extent.base
-			    && ((size_t)addr + type->pos_maxoff) <= (current->extent.base + current->extent.length)) {
-				// this extent contains it
-				fprintf(stderr, "found it in base = 0x%16lx, length = 0x%16lx\n", current->extent.base, current->extent.length);
-				int64_t result;
-				void *bytes = (void*)(current->extent.data + (((size_t)addr) - current->extent.base));
-				*out_result = transmogrify_pointer(type, bytes);
-				return true;
-			}
-			
-			current = current->next;
+		void *bytes = _find_in_cache(state, (size_t)addr, type->pos_maxoff);
+		if (bytes != NULL) {
+			*out_result = transmogrify_pointer(type, bytes);
+			return true;
+		} else {
+			fprintf(stderr, "DIDN'T find it, adding to need_memory_extents and returning unevaluated\n");
+			state->need_memory_extents = extent_node_new_with((size_t) addr, type->pos_maxoff, state->need_memory_extents);
+			return false;
 		}
-
-		// not found
-		fprintf(stderr, "DIDN'T find it, adding to need_memory_extents and returning unevaluated\n");
-		state->need_memory_extents = extent_node_new_with((size_t) addr, type->pos_maxoff, state->need_memory_extents);
-		return false;
 	}
 }
 
@@ -106,11 +112,11 @@ _Bool deref_object(struct evaluator_state *state, struct object ptr, struct obje
 	}
 }
 
-struct expr *extent_from_object(struct object obj) {
+struct expr *extent_from_object(struct object obj, enum footprint_direction direction) {
 	assert(UNIQTYPE_HAS_KNOWN_LENGTH(obj.type));
 	assert(!obj.direct);
 	size_t size = obj.type->pos_maxoff;
-	return construct_extent((unsigned long) obj.addr, size);
+	return construct_extent((unsigned long) obj.addr, size, direction);
 }
 
 struct data_extent_node *data_extent_node_new() {

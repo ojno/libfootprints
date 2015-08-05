@@ -36,6 +36,13 @@ struct expr *expr_new() {
 	return result;
 }
 
+struct expr *expr_new_with(enum footprint_direction direction, enum expr_types type) {
+	struct expr *result = expr_new();
+	result->direction = direction;
+	result->type = type;
+	return result;
+}
+
 struct expr *expr_clone(struct expr *other) {
 	struct expr *result = expr_new();
 	memcpy(result, other, sizeof(struct expr));
@@ -57,43 +64,36 @@ struct string_node *string_node_new_with(char *value, struct string_node *next) 
 }
 
 struct expr *construct_void() {
-	struct expr *result = expr_new();
-	result->type = EXPR_VOID;
-	return result;
+	return expr_new_with(FP_DIRECTION_UNKNOWN, EXPR_VOID);
 }
 
-struct expr *construct_extent(int64_t base, int64_t length) {
-	struct expr *result = expr_new();
-	result->type = EXPR_EXTENT;
+struct expr *construct_extent(int64_t base, int64_t length, enum footprint_direction direction) {
+	struct expr *result = expr_new_with(direction, EXPR_EXTENT);
 	result->extent.base = base;
 	result->extent.length = length;
 	return result;
 }
 
-struct expr *construct_function(struct function func) {
-	struct expr *result = expr_new();
-	result->type = EXPR_FUNCTION;
+struct expr *construct_function(struct function func, enum footprint_direction direction) {
+	struct expr *result = expr_new_with(direction, EXPR_FUNCTION);
 	result->func = func;
 	return result;
 }
 
-struct expr *construct_value(int64_t value) {
-	struct expr *result = expr_new();
-	result->type = EXPR_VALUE;
+struct expr *construct_value(int64_t value, enum footprint_direction direction) {
+	struct expr *result = expr_new_with(direction, EXPR_VALUE);
 	result->value = value;
 	return result;
 }
 
-struct expr *construct_union(struct union_node *value) {
-	struct expr *result = expr_new();
-	result->type = EXPR_UNION;
+struct expr *construct_union(struct union_node *value, enum footprint_direction direction) {
+	struct expr *result = expr_new_with(direction, EXPR_UNION);
 	result->unioned = value;
 	return result;
 }
 
-struct expr *construct_object(struct object value) {
-	struct expr *result = expr_new();
-	result->type = EXPR_OBJECT;
+struct expr *construct_object(struct object value, enum footprint_direction direction) {
+	struct expr *result = expr_new_with(direction, EXPR_OBJECT);
 	result->object = value;
 	return result;
 }

@@ -57,9 +57,10 @@ enum expr_types {
 };
 
 enum footprint_direction {
-	FOOTPRINT_READ,
-	FOOTPRINT_WRITE,
-	FOOTPRINT_READWRITE
+	FP_DIRECTION_UNKNOWN,
+	FP_DIRECTION_READ,
+	FP_DIRECTION_WRITE,
+	FP_DIRECTION_READWRITE
 };
 
 extern const char *binary_ops_str[];

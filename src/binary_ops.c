@@ -46,23 +46,21 @@ struct expr *eval_binary_op(struct evaluator_state *state, struct expr* e, struc
 		if (left->type == EXPR_UNION) {
 			char *loop_var_name = new_ident_not_in(env, "loop_var");
 
-			struct expr *loop_var_ident = expr_new();
-			loop_var_ident->type = EXPR_IDENT;
+			struct expr *loop_var_ident = expr_new_with(e->direction, EXPR_IDENT);
 			loop_var_ident->ident = loop_var_name;
 
 			struct expr *loop_body = expr_new();
 			memcpy(loop_body, e, sizeof(struct expr));
 			loop_body->binary_op.left = loop_var_ident;
 
-			struct expr *loop = expr_new();
-			loop->type = EXPR_FOR;
+			struct expr *loop = expr_new_with(e->direction, EXPR_FOR);
 			loop->for_loop.body = loop_body;
 			loop->for_loop.ident = loop_var_name;
 			loop->for_loop.over = left;
 
 			return eval_footprint_expr(state, loop, env);
 		} else if (left->type == EXPR_OBJECT) {
-			return lookup_in_object(&left->object, e->binary_op.right->ident);
+			return lookup_in_object(&left->object, e->binary_op.right->ident, e->direction);
 		} else {
 			assert(false);
 		}
@@ -84,7 +82,7 @@ struct expr *eval_binary_op(struct evaluator_state *state, struct expr* e, struc
 			current_arg_value = current_arg_value->next;
 		}
 		assert(current_arg_name == NULL); // not too few arguments
-		function_env = env_new_with(func.name, construct_function(func), function_env);
+		function_env = env_new_with(func.name, construct_function(func, e->direction), function_env);
 		return eval_footprint_expr(state, func.expr, function_env);
 	} break;
 	default: {
@@ -97,12 +95,12 @@ struct expr *eval_binary_op(struct evaluator_state *state, struct expr* e, struc
 			// cache miss, state modified
 			struct expr *new_expr = expr_clone(e);
 			if (left_success) {
-				new_expr->binary_op.left = construct_value(left);
+				new_expr->binary_op.left = construct_value(left, e->direction);
 			} else {
 				new_expr->binary_op.left = partial_left;
 			}
 			if (right_success) {
-				new_expr->binary_op.right = construct_value(right);
+				new_expr->binary_op.right = construct_value(right, e->direction);
 			} else {
 				new_expr->binary_op.right = partial_right;
 			}
@@ -110,58 +108,58 @@ struct expr *eval_binary_op(struct evaluator_state *state, struct expr* e, struc
 		}
 		switch (e->binary_op.op) {
 		case BIN_GT: {
-			return construct_value(left > right ? 1 : 0);
+			return construct_value(left > right ? 1 : 0, e->direction);
 		} break;
 		case BIN_LT: {
-			return construct_value(left < right ? 1 : 0);
+			return construct_value(left < right ? 1 : 0, e->direction);
 		} break;
 		case BIN_GTE: {
-			return construct_value(left >= right ? 1 : 0);
+			return construct_value(left >= right ? 1 : 0, e->direction);
 		} break;
 		case BIN_LTE: {
-			return construct_value(left <= right ? 1 : 0);
+			return construct_value(left <= right ? 1 : 0, e->direction);
 		} break;
 		case BIN_EQ: {
-			return construct_value(left == right ? 1 : 0);
+			return construct_value(left == right ? 1 : 0, e->direction);
 		} break;
 		case BIN_NE: {
-			return construct_value(left != right ? 1 : 0);
+			return construct_value(left != right ? 1 : 0, e->direction);
 		} break;
 		case BIN_AND: {
-			return construct_value(!!left && !!right ? 1 : 0);
+			return construct_value(!!left && !!right ? 1 : 0, e->direction);
 		} break;
 		case BIN_OR: {
-			return construct_value(!!left || !!right ? 1 : 0);
+			return construct_value(!!left || !!right ? 1 : 0, e->direction);
 		} break;
 		case BIN_ADD: {
-			return construct_value(left + right);
+			return construct_value(left + right, e->direction);
 		} break;
 		case BIN_SUB: {
-			return construct_value(left - right);
+			return construct_value(left - right, e->direction);
 		} break;
 		case BIN_MUL: {
-			return construct_value(left * right);
+			return construct_value(left * right, e->direction);
 		} break;
 		case BIN_DIV: {
-			return construct_value(left / right);
+			return construct_value(left / right, e->direction);
 		} break;
 		case BIN_MOD: {
-			return construct_value(left % right);
+			return construct_value(left % right, e->direction);
 		} break;
 		case BIN_SHL: {
-			return construct_value(left << right);
+			return construct_value(left << right, e->direction);
 		} break;
 		case BIN_SHR: {
-			return construct_value(left >> right);
+			return construct_value(left >> right, e->direction);
 		} break;
 		case BIN_BITAND: {
-			return construct_value(left & right);
+			return construct_value(left & right, e->direction);
 		} break;
 		case BIN_BITOR: {
-			return construct_value(left | right);
+			return construct_value(left | right, e->direction);
 		} break;
 		case BIN_BITXOR: {
-			return construct_value(left ^ right);
+			return construct_value(left ^ right, e->direction);
 		} break;
 		default:
 			assert(false);

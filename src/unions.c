@@ -137,7 +137,7 @@ struct union_node *union_flatten(struct union_node *first) {
 		next = current->next;
 		if (current->expr->type == EXPR_UNION) {
 			if (!adjacent && current->expr->unioned->adjacent) {
-				tail = union_new_with(construct_union(union_flatten(current->expr->unioned)), false, tail);
+				tail = union_new_with(construct_union(union_flatten(current->expr->unioned), current->expr->direction), false, tail);
 			} else {
 				tail = union_union(union_flatten(current->expr->unioned), tail);
 			}
@@ -219,10 +219,11 @@ struct union_node *sorted_union_merge_extents(struct union_node *head) {
 				next = next->next;
 			}
 			
-			extents = union_new_with(construct_extent(base, length), false, extents);
+			extents = union_new_with(construct_extent(base, length, current->expr->direction), false, extents);
 		} break;
 		case EXPR_UNION: {
-			extents = union_new_with(construct_union(sorted_union_merge_extents(current->expr->unioned)),
+			extents = union_new_with(construct_union(sorted_union_merge_extents(current->expr->unioned),
+			                                         current->expr->direction),
 			                         current->adjacent, extents);
 			next = current->next;
 		} break;
@@ -249,7 +250,7 @@ struct expr *eval_union(struct evaluator_state *state, struct expr *e, struct en
 		tail = union_new_with(eval_footprint_expr(state, current->expr, env), current->adjacent, tail);
 		current = current->next;
 	}
-	return construct_union(tail);
+	return construct_union(tail, e->direction);
 }
 
 struct union_node *_union_remove_type(struct union_node *head, enum expr_types type) {
@@ -261,8 +262,29 @@ struct union_node *_union_remove_type(struct union_node *head, enum expr_types t
 		struct union_node *tail = NULL;
 		while (current != NULL) {
 			if (current->expr->type == EXPR_UNION) {
-				tail = union_new_with(construct_union(_union_remove_type(current->expr->unioned, type)), current->adjacent, tail);
+				tail = union_new_with(construct_union(_union_remove_type(current->expr->unioned, type),
+				                                      current->expr->direction),
+				                      current->adjacent, tail);
 			} else if (current->expr->type != type) {
+				tail = union_new_with(current->expr, current->adjacent, tail);
+			}
+
+			current = current->next;
+		}
+
+		return tail;
+	}
+}
+
+struct union_node *_union_remove_direction(struct union_node *head, enum footprint_direction direction) {
+	if (head == NULL) {
+		return NULL;
+	} else {
+
+		struct union_node *current = head;
+		struct union_node *tail = NULL;
+		while (current != NULL) {
+			if (current->expr->direction != direction) {
 				tail = union_new_with(current->expr, current->adjacent, tail);
 			}
 

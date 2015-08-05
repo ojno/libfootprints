@@ -18,12 +18,11 @@ const char *subscript_methods_str[] = {
 
 static struct uniqtype *byte_type = &__uniqtype__unsigned_char$8;
 
-struct union_node *construct_bytes_union(struct object obj, size_t base, size_t length) {
+struct union_node *construct_bytes_union(struct object obj, size_t base, size_t length, enum footprint_direction direction) {
 	struct union_node *tail = NULL;
 	size_t orig_addr = (size_t) obj.addr + base;
 	for (size_t ptr = orig_addr; ptr < (orig_addr + length); ptr++) {
-		struct expr *new_byte = expr_new();
-		new_byte->type = EXPR_OBJECT;
+		struct expr *new_byte = expr_new_with(direction, EXPR_OBJECT);
 		new_byte->object.type = byte_type;
 		new_byte->object.addr = (void*)ptr;
 		new_byte->object.direct = false;
@@ -34,14 +33,13 @@ struct union_node *construct_bytes_union(struct object obj, size_t base, size_t 
 }
 
 // TODO: bounds checking?
-struct union_node *construct_size_union(struct object obj, size_t base, size_t length) {
+struct union_node *construct_size_union(struct object obj, size_t base, size_t length, enum footprint_direction direction) {
 	assert(UNIQTYPE_HAS_KNOWN_LENGTH(obj.type));
 	struct union_node *tail = NULL;
 	size_t size = obj.type->pos_maxoff;
 	size_t orig_addr = (size_t) obj.addr + (size * base);
 	for (size_t ptr = orig_addr; ptr < (orig_addr + size * length); ptr += size) {
-		struct expr *new_obj = expr_new();
-		new_obj->type = EXPR_OBJECT;
+		struct expr *new_obj = expr_new_with(direction, EXPR_OBJECT);
 		new_obj->object.type = obj.type;
 		new_obj->object.addr = (void*)ptr;
 		new_obj->object.direct = false;
@@ -51,10 +49,10 @@ struct union_node *construct_size_union(struct object obj, size_t base, size_t l
 	return tail;
 }
 
-struct union_node *bytes_union_from_object(struct object obj) {
+struct union_node *bytes_union_from_object(struct object obj, enum footprint_direction direction) {
 	assert(UNIQTYPE_HAS_KNOWN_LENGTH(obj.type));
 	size_t size = obj.type->pos_maxoff;
-	return construct_bytes_union(obj, 0, size);
+	return construct_bytes_union(obj, 0, size, direction);
 }
 
 
@@ -64,16 +62,14 @@ struct expr *eval_subscript(struct evaluator_state *state, struct expr *e, struc
 	if (target_expr->type == EXPR_UNION) {
 		char *loop_var_name = new_ident_not_in(env, "loop_var");
 
-		struct expr *loop_var_ident = expr_new();
-		loop_var_ident->type = EXPR_IDENT;
+		struct expr *loop_var_ident = expr_new_with(e->direction, EXPR_IDENT);
 		loop_var_ident->ident = loop_var_name;
 
 		struct expr *loop_body = expr_new();
 		memcpy(loop_body, e, sizeof(struct expr));
 		loop_body->subscript.target = loop_var_ident;
 
-		struct expr *loop = expr_new();
-		loop->type = EXPR_FOR;
+		struct expr *loop = expr_new_with(e->direction, EXPR_FOR);
 		loop->for_loop.body = loop_body;
 		loop->for_loop.ident = loop_var_name;
 		loop->for_loop.over = target_expr;
@@ -95,13 +91,13 @@ struct expr *eval_subscript(struct evaluator_state *state, struct expr *e, struc
 			// cache miss, state modified
 			struct expr *new_expr = expr_clone(e);
 			if (from_success) {
-				new_expr->subscript.from = construct_value(from);
+				new_expr->subscript.from = construct_value(from, e->direction);
 			} else {
 				new_expr->subscript.from = partial_from;
 			}
 			if (e->subscript.to) {
 				if (to_success) {
-					new_expr->subscript.to = construct_value(to);
+					new_expr->subscript.to = construct_value(to, e->direction);
 				} else {
 					new_expr->subscript.to = partial_to;
 				}
@@ -123,13 +119,13 @@ struct expr *eval_subscript(struct evaluator_state *state, struct expr *e, struc
 		case SUBSCRIPT_DIRECT_BYTES: {
 			if (e->subscript.to) {
 				//return construct_union(construct_bytes_union(target, from, length));
-				return construct_extent((unsigned long) target.addr + from, length);
+				return construct_extent((unsigned long) target.addr + from, length, e->direction);
 			} else {
 				struct object new_obj;
 				new_obj.type = byte_type;
 				new_obj.addr = (void*)((unsigned long) target.addr + from);
 				new_obj.direct = false;
-				return construct_object(new_obj);
+				return construct_object(new_obj, e->direction);
 			}
 		} break;
 		case SUBSCRIPT_DEREF_BYTES: {
@@ -140,13 +136,13 @@ struct expr *eval_subscript(struct evaluator_state *state, struct expr *e, struc
 			}
 			if (e->subscript.to) {
 				//return construct_union(construct_bytes_union(derefed, from, length));
-				return construct_extent((unsigned long) derefed.addr + from, length);
+				return construct_extent((unsigned long) derefed.addr + from, length, e->direction);
 			} else {
 				struct object new_obj;
 				new_obj.type = byte_type;
 				new_obj.addr = (void*)((unsigned long) derefed.addr + from);
 				new_obj.direct = false;
-				return construct_object(new_obj);
+				return construct_object(new_obj, e->direction);
 			}
 		} break;
 		case SUBSCRIPT_DEREF_SIZES: {
@@ -158,12 +154,12 @@ struct expr *eval_subscript(struct evaluator_state *state, struct expr *e, struc
 			assert(UNIQTYPE_HAS_KNOWN_LENGTH(derefed.type));
 			if (e->subscript.to) {
 				assert(length > 0);
-				return construct_union(construct_size_union(derefed, from, length));
+				return construct_union(construct_size_union(derefed, from, length, e->direction), e->direction);
 			} else {
 				struct object new_obj = derefed;
 				size_t size = derefed.type->pos_maxoff;
 				new_obj.addr = (void*) ((size_t)derefed.addr + (from * size));
-				return construct_object(new_obj);
+				return construct_object(new_obj, e->direction);
 			}
 		} break;
 		default:

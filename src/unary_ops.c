@@ -29,7 +29,7 @@ struct expr *eval_unary_op(struct evaluator_state *state, struct expr* e, struct
 			new_expr->unary_op.arg = partial_arg;
 			return new_expr;
 		}
-		return construct_value(arg ? 0 : 1);
+		return construct_value(arg ? 0 : 1, e->direction);
 	} break;
 	case UN_NEG: {
 		int64_t arg;
@@ -40,7 +40,7 @@ struct expr *eval_unary_op(struct evaluator_state *state, struct expr* e, struct
 			new_expr->unary_op.arg = partial_arg;
 			return new_expr;
 		}
-		return construct_value(-arg);
+		return construct_value(-arg, e->direction);
 	} break;
 	case UN_SIZEOF: {
 		struct object arg;
@@ -52,7 +52,7 @@ struct expr *eval_unary_op(struct evaluator_state *state, struct expr* e, struct
 			return new_expr;
 		}
 		assert(UNIQTYPE_HAS_KNOWN_LENGTH(arg.type));
-		return construct_value(arg.type->pos_maxoff);
+		return construct_value(arg.type->pos_maxoff, e->direction);
 	} break;
 	default:
 		assert(false);

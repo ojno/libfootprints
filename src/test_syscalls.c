@@ -77,7 +77,8 @@ int main(int argc, char **argv) {
 	supply_syscall_footprint(&read_state);
 	assert(read_state->finished);
 	
-	printf("********************************** retval from read was %d, up to first 10 bytes are: %s\n", read_state->retval, buf);
+	printf("********************************** retval from read was %d. write extents we got back: %s\n", read_state->retval, print_data_extents(read_state->write_extents));
+	
 
 	// close() the fd!
 	struct syscall_state *close_state = start_syscall(&syscall_env, close_syscall_num, (long int[]) {(long int)fd, 0, 0, 0, 0, 0});

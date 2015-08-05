@@ -10,6 +10,7 @@
 #include "footprints.h"
 
 const char *footprint_direction_str[] = {
+	"unknown",
 	"read",
 	"write",
 	"readwrite"

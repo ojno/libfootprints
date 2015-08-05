@@ -16,7 +16,7 @@
 struct footprint_node *parse_footprints_from_file(const char *filename, struct env_node **output_env);
 
 struct footprint_node *new_from_subprogram_DIE(void *subprogram, struct footprint_node *next);
-struct expr *parse_antlr_tree(void *ast);
+struct expr *parse_antlr_tree(void *ast, enum footprint_direction direction);
 
 char *parse_ident(void *ast);
 int64_t parse_int(void *ast);
@@ -29,13 +29,14 @@ struct function parse_function(void *ast);
 char *print_expr_tree(struct expr *e);
 char *print_footprint_extents(struct footprint_node *fp, struct union_node *extents);
 void print_tree_types(void *ast);
+char *print_data_extents(struct data_extent_node *head);
 
 ////////////////////////////////////////////////////////////
 // evaluator
 ////////////////////////////////////////////////////////////
 
 struct evaluator_state *eval_footprints_for(struct evaluator_state *state, struct footprint_node *footprints, struct env_node *defined_functions, const char *name, struct uniqtype *func, long int arg_values[6]);
-struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struct footprint_node *footprint, struct env_node *defined_functions, struct uniqtype *func, long int arg_values[6], _Bool merge_extents);
+struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struct footprint_node *footprint, struct env_node *defined_functions, struct uniqtype *func, long int arg_values[6], _Bool merge_extents, enum footprint_direction filter_direction);
 
 struct expr *eval_footprint_expr(struct evaluator_state *state, struct expr *e, struct env_node *env);
 
@@ -77,21 +78,23 @@ struct extent_node *extent_node_new_with(size_t base, size_t length, struct exte
 
 _Bool object_to_value(struct evaluator_state *state, struct object object, int64_t *out_result);
 _Bool deref_object(struct evaluator_state *state, struct object pointer, struct object *out_object);
+void *_find_in_cache(struct evaluator_state *state, size_t addr, size_t size);
 
 ////////////////////////////////////////////////////////////
 // exprs
 ////////////////////////////////////////////////////////////
 
 struct expr *expr_new();
+struct expr *expr_new_with(enum footprint_direction direction, enum expr_types type);
 struct expr *expr_clone(struct expr *other);
 void expr_free(struct expr **e);
 
 struct expr *construct_void();
-struct expr *construct_extent(int64_t base, int64_t length);
-struct expr *construct_function(struct function func);
-struct expr *construct_value(int64_t value);
-struct expr *construct_union(struct union_node *value);
-struct expr *construct_object(struct object value);
+struct expr *construct_extent(int64_t base, int64_t length, enum footprint_direction direction);
+struct expr *construct_function(struct function func, enum footprint_direction direction);
+struct expr *construct_value(int64_t value, enum footprint_direction direction);
+struct expr *construct_union(struct union_node *value, enum footprint_direction direction);
+struct expr *construct_object(struct object value, enum footprint_direction direction);
 
 struct string_node *string_node_new();
 struct string_node *string_node_new_with(char *value, struct string_node *next);
@@ -109,7 +112,7 @@ void env_free(struct env_node *first);
 char *new_ident_not_in(struct env_node *env, char *suffix);
 char *_find_ident_not_in(struct env_node *env, char *suffix, size_t length);
 _Bool _ident_in(struct env_node *env, char *ident);
-struct expr *lookup_in_object(struct object *context, char *ident);
+struct expr *lookup_in_object(struct object *context, char *ident, enum footprint_direction direction);
 struct expr *lookup_in_env(struct env_node *env, char *ident);
 
 
@@ -130,6 +133,7 @@ struct union_node *union_objects_to_extents(struct union_node *head);
 struct union_node *sorted_union_merge_extents(struct union_node *head);
 
 struct union_node *_union_remove_type(struct union_node *head, enum expr_types type);
+struct union_node *_union_remove_direction(struct union_node *head, enum footprint_direction direction);
 void *_get_first_addr(struct union_node *node);
 
 ////////////////////////////////////////////////////////////

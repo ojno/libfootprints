@@ -28,7 +28,7 @@ struct function parse_function(void *ptr) {
 	func.name = parse_ident(name_ast);
 
 	// expr
-	func.expr = parse_antlr_tree(expr_ast);
+	func.expr = parse_antlr_tree(expr_ast, FP_DIRECTION_UNKNOWN);
 
 	// args
 	func.args = NULL;
@@ -74,7 +74,7 @@ struct footprint_node *parse_footprints_from_file(const char *filename, struct e
 		} else if (GET_TYPE(die) == FP_FUN &&
 		           GET_CHILD_COUNT(die) > 0) {
 			struct function func = parse_function(die);
-			defined_functions = env_new_with(func.name, construct_function(func), defined_functions);
+			defined_functions = env_new_with(func.name, construct_function(func, FP_DIRECTION_UNKNOWN), defined_functions);
 		}
 	}
 
@@ -118,20 +118,21 @@ struct footprint_node *new_from_subprogram_DIE(void *ptr, struct footprint_node 
 
 							ANTLR3_BASE_TREE *clause = GET_CHILD(value, k);
 							assert(GET_TYPE(clause) == FP_CLAUSE);
+							enum footprint_direction direction = FP_DIRECTION_UNKNOWN;
 							switch (GET_TYPE(GET_CHILD(clause, 0))) {
 							case KEYWORD_R:
-								node->direction = FOOTPRINT_READWRITE; // TODO FIXME HACK
+								direction = FP_DIRECTION_READ; // TODO FIXME HACK
 								break;
 							case KEYWORD_W:
-								node->direction = FOOTPRINT_READWRITE; // TODO FIXME HACK
+								direction = FP_DIRECTION_WRITE; // TODO FIXME HACK
 								break;
 							case KEYWORD_RW:
-								node->direction = FOOTPRINT_READWRITE;
+								direction = FP_DIRECTION_READWRITE;
 								break;
 							default:
 								assert(false);
 							}
-							exprs = union_new_with(parse_antlr_tree(GET_CHILD(clause, 1)), false, exprs);
+							exprs = union_new_with(parse_antlr_tree(GET_CHILD(clause, 1), direction), false, exprs);
 						}
 
 					} else {
@@ -245,10 +246,11 @@ int64_t parse_int(void *ptr) {
 	return 0;
 }
 
-struct expr *parse_antlr_tree(void *ptr) {
+struct expr *parse_antlr_tree(void *ptr, enum footprint_direction direction) {
 	ANTLR3_BASE_TREE *ast = (ANTLR3_BASE_TREE*)ptr;
 	assert(ast);
 	struct expr *e = expr_new();
+	e->direction = direction;
 	_Bool union_adjacent = false; // only applicable to unions, obviously
 	switch (GET_TYPE(ast)) {
 	case FP_GT:
@@ -385,8 +387,8 @@ struct expr *parse_antlr_tree(void *ptr) {
 			assert(false);
 		}
 
-		e->binary_op.left = parse_antlr_tree(GET_CHILD(ast, 0));
-		e->binary_op.right = parse_antlr_tree(GET_CHILD(ast, 1));
+		e->binary_op.left = parse_antlr_tree(GET_CHILD(ast, 0), direction);
+		e->binary_op.right = parse_antlr_tree(GET_CHILD(ast, 1), direction);
 	} break;
 	case EXPR_UNARY: {
 		assert(GET_CHILD_COUNT(ast) == 1);
@@ -407,19 +409,19 @@ struct expr *parse_antlr_tree(void *ptr) {
 			assert(false);
 		}
 
-		e->unary_op.arg = parse_antlr_tree(GET_CHILD(ast, 0));
+		e->unary_op.arg = parse_antlr_tree(GET_CHILD(ast, 0), direction);
 	} break;
 	case EXPR_FOR: {
 		assert(GET_CHILD_COUNT(ast) == 3);
-		e->for_loop.body = parse_antlr_tree(GET_CHILD(ast, 0));
+		e->for_loop.body = parse_antlr_tree(GET_CHILD(ast, 0), direction);
 		e->for_loop.ident = parse_ident(GET_CHILD(ast, 1));
-		e->for_loop.over = parse_antlr_tree(GET_CHILD(ast, 2));
+		e->for_loop.over = parse_antlr_tree(GET_CHILD(ast, 2), direction);
 	} break;
 	case EXPR_IF: {
 		assert(GET_CHILD_COUNT(ast) == 3);
-		e->if_cond.cond = parse_antlr_tree(GET_CHILD(ast, 0));
-		e->if_cond.then = parse_antlr_tree(GET_CHILD(ast, 1));
-		e->if_cond.otherwise = parse_antlr_tree(GET_CHILD(ast, 2));
+		e->if_cond.cond = parse_antlr_tree(GET_CHILD(ast, 0), direction);
+		e->if_cond.then = parse_antlr_tree(GET_CHILD(ast, 1), direction);
+		e->if_cond.otherwise = parse_antlr_tree(GET_CHILD(ast, 2), direction);
 	} break;
 	case EXPR_SUBSCRIPT: {
 		assert(GET_CHILD_COUNT(ast) == 3 || GET_CHILD_COUNT(ast) == 4);
@@ -436,11 +438,11 @@ struct expr *parse_antlr_tree(void *ptr) {
 		default:
 			assert(false);
 		}
-		e->subscript.target = parse_antlr_tree(GET_CHILD(ast, 1));
+		e->subscript.target = parse_antlr_tree(GET_CHILD(ast, 1), direction);
 
-		e->subscript.from = parse_antlr_tree(GET_CHILD(ast, 2));
+		e->subscript.from = parse_antlr_tree(GET_CHILD(ast, 2), direction);
 		if (GET_CHILD_COUNT(ast) > 3) {
-			e->subscript.to = parse_antlr_tree(GET_CHILD(ast, 3));
+			e->subscript.to = parse_antlr_tree(GET_CHILD(ast, 3), direction);
 		}
 	} break;
 	case EXPR_IDENT: {
@@ -457,14 +459,14 @@ struct expr *parse_antlr_tree(void *ptr) {
 	case EXPR_FUNCTION_ARGS: { // function args are just a union, but must be the right way around
 		struct union_node *tail = NULL;
 		for (int i = GET_CHILD_COUNT(ast) - 1; i >= 0; i--) {
-			tail = union_new_with(parse_antlr_tree(GET_CHILD(ast, i)), false, tail);
+			tail = union_new_with(parse_antlr_tree(GET_CHILD(ast, i), direction), false, tail);
 		}
 		e->unioned = tail;
 	} break;
 	case EXPR_UNION: {
 		struct union_node *tail = NULL;
 		FOR_ALL_CHILDREN(ast) {
-			tail = union_new_with(parse_antlr_tree(n), union_adjacent, tail);
+			tail = union_new_with(parse_antlr_tree(n, direction), union_adjacent, tail);
 		}
 		e->unioned = tail;
 	} break;

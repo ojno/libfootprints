@@ -36,12 +36,12 @@ int main(int argc, char **argv) {
 	struct object test_int_object = {&__uniqtype__int$32, &test_int, false};
 	struct object test_int_ptr_object = {&__uniqtype____PTR_int$32, &test_int_ptr, false};
 	struct env_node *env = env_new_with("test_int_ptr",
-	                                    construct_object(test_int_ptr_object),
+	                                    construct_object(test_int_ptr_object, FP_DIRECTION_UNKNOWN),
 	                                    env_new_with("test_int",
-	                                                 construct_object(test_int_object), NULL));
+	                                                 construct_object(test_int_object, FP_DIRECTION_UNKNOWN), NULL));
 
 	printf("antlr: %s\n", (char*) s->chars);
-	struct expr *parsed = parse_antlr_tree(tree);
+	struct expr *parsed = parse_antlr_tree(tree, FP_DIRECTION_UNKNOWN);
 	printf("parsed: %s\n", print_expr_tree(parsed));
 
 	struct data_extent_node fake_extent = {
