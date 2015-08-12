@@ -27,6 +27,6 @@ src_libfootprints_la_SOURCES = src/binary_ops.c src/eval.c src/footprints.c src/
 src_libfootprints_la_LDFLAGS = $(AM_LDFLAGS) -Wl,--hash-style=sysv -Wl,--dynamic-list,src/dynamic-list -Wl,--version-script,src/version-script
 src_libfootprints_la_DEPENDENCIES = src/dynamic-list
 
-src_libfootprints_syscalls_la_SOURCES = src/perform_syscall.c
+src_libfootprints_syscalls_la_SOURCES = src/perform_syscall.c src/syscall_names.c
 src_libfootprints_syscalls_la_LIBADD = src/libfootprints.la
 src_libfootprints_syscalls_la_DEPENDENCIES = src/libfootprints.la src/dynamic-list

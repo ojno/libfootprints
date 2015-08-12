@@ -3,7 +3,10 @@
 
 #include "footprints_types.h"
 
-extern const char *syscall_names[];
+#define SYSCALL_MAX 543 /* FIXME: where does this come from? */
+#define SYSCALL_NAME_LEN 32
+
+extern const char *syscall_names[SYSCALL_MAX + 1];
 
 struct syscall_env {
 	struct footprint_node *footprints;
@@ -15,6 +18,7 @@ struct syscall_state {
 	struct evaluator_state *eval;
 	struct footprint_node *footprint;
 	size_t syscall_num;
+	struct uniqtype *syscall_type;
 	long int syscall_args[6];
 	char *syscall_name;
 	long int retval;
