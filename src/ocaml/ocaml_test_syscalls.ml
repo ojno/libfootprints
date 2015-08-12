@@ -1,6 +1,5 @@
 open Ctypes
 open Printf
-open Core.Std
 open Syscalls
 
 let read_syscall_num = 0n
@@ -15,11 +14,11 @@ let rec supply_syscall_footprint state extents =
       length = extent.length;
       (* do horrible things with pointers for testing purposes *)
       data = Some (bigarray_of_ptr array1
-                                   (Nativeint.to_int_exn extent.length)
+                                   (Nativeint.to_int extent.length)
                                    Bigarray.char
                                    (from_voidp char (ptr_of_raw_address extent.base)));
                                     }) in
-  match Syscalls.continue_syscall state (List.map extents supply_one_footprint) with
+  match Syscalls.continue_syscall state (List.map supply_one_footprint extents) with
   | Finished (retval, write_extents) -> Finished (retval, write_extents)
   | MoreDataNeeded (state, extents) -> supply_syscall_footprint state extents
 
@@ -33,16 +32,35 @@ let do_one_syscall env num args =
      | x -> x)
   | x -> x
 
+let string_to_bigarray s =
+  let bigarr = Bigarray.Array1.create Bigarray.char Bigarray.c_layout ((String.length s) + 1) in begin
+      for i = 0 to (String.length s) - 1 do
+        bigarr.{i} <- s.[i]
+      done;
+      bigarr.{(String.length s)} <- '\000';
+      bigarr
+    end
+  
+let string_from_bigarray arr =
+  let s = String.make (Bigarray.Array1.dim arr) '\000' in begin
+      for i = 0 to (Bigarray.Array1.dim arr) - 1 do
+        s.[i] <- arr.{i}
+      done;
+      s
+    end
+
+
 let extent_to_string extent =
   sprintf "(extent: base = 0x%nx, length = 0x%nx, data = %S)" extent.base extent.length
           (match extent.data with
            | None -> "[]"
-            | Some data -> (Bigstring.to_string data))
+           | Some data -> string_from_bigarray data)
 
 
 let extent_list_to_string extent_list =
-  String.concat ["["; (String.concat ~sep:", " (List.map extent_list (fun extent -> extent_to_string extent))); "]"]
-              
+  String.concat "" ["["; (String.concat ", " (List.map (fun extent -> extent_to_string extent) extent_list)); "]"]
+
+
   
 
 let main =
@@ -58,7 +76,7 @@ let main =
          as you'll be passing the raw register values
          (as nativeints, if you please) *)
            print_endline "Got footprints." ;
-           let filename_bigstring = Bigstring.of_string filename in begin
+           let filename_bigstring = (string_to_bigarray filename) in begin
                printf "*** %s is the filename; %d is the length of the bigstring\n"
                       filename
                       (Bigarray.Array1.dim filename_bigstring);

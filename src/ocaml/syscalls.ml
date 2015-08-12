@@ -1,4 +1,3 @@
-open Core.Std
 open Ctypes
 open PosixTypes
 open Foreign
@@ -13,6 +12,9 @@ let c_env_node : c_env_node structure typ = structure "env_node"
 
 type c_evaluator_state
 let c_evaluator_state : c_evaluator_state structure typ = structure "evaluator_state"
+
+type c_uniqtype
+let c_uniqtype : c_uniqtype structure typ = structure "uniqtype"
 
 type c_extent
 let c_extent : c_extent structure typ = structure "extent"
@@ -51,6 +53,7 @@ let c_syscall_state_env = field c_syscall_state "syscall_env" (ptr c_syscall_env
 let c_syscall_state_eval = field c_syscall_state "eval" (ptr c_evaluator_state)
 let c_syscall_state_footprint = field c_syscall_state "footprint" (ptr c_footprint_node)
 let c_syscall_state_num = field c_syscall_state "syscall_num" nativeint
+let c_syscall_state_type = field c_syscall_state "syscall_type" (ptr c_uniqtype)
 let c_syscall_state_args = field c_syscall_state "syscall_args" (array 6 nativeint)
 let c_syscall_state_name = field c_syscall_state "syscall_name" string
 let c_syscall_state_retval = field c_syscall_state "retval" nativeint
@@ -130,7 +133,7 @@ let _marshal_from_write_extents c_data_extents =
            base = getf c_data_extent c_data_extent_base;
            length = getf c_data_extent c_data_extent_length;
            data = Some (bigarray_of_ptr array1
-                                        (Nativeint.to_int_exn (getf c_data_extent c_data_extent_length))
+                                        (Nativeint.to_int (getf c_data_extent c_data_extent_length))
                                         Bigarray.char
                                         (getf c_data_extent c_data_extent_data))
          } :: marshal_one_extent (getf c_data_extent_node c_data_extent_node_next) in 
