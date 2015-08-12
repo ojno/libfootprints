@@ -83,7 +83,9 @@ struct expr *eval_binary_op(struct evaluator_state *state, struct expr* e, struc
 		}
 		assert(current_arg_name == NULL); // not too few arguments
 		function_env = env_new_with(func.name, construct_function(func, e->direction), function_env);
-		return eval_footprint_expr(state, func.expr, function_env);
+		struct expr *new_expr = expr_clone(func.expr);
+		new_expr->direction = e->direction;
+		return eval_footprint_expr(state, new_expr, function_env);
 	} break;
 	default: {
 		int64_t left, right;

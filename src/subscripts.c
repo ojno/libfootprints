@@ -36,7 +36,9 @@ struct union_node *construct_bytes_union(struct object obj, size_t base, size_t 
 struct union_node *construct_size_union(struct object obj, size_t base, size_t length, enum footprint_direction direction) {
 	assert(UNIQTYPE_HAS_KNOWN_LENGTH(obj.type));
 	struct union_node *tail = NULL;
-	size_t size = obj.type->pos_maxoff;
+	// TODO FIXME HACK to deal with void*
+	// (not *so* bad because of the assertion above)
+	size_t size = (obj.type->pos_maxoff == 0 ? 1 : obj.type->pos_maxoff);
 	size_t orig_addr = (size_t) obj.addr + (size * base);
 	for (size_t ptr = orig_addr; ptr < (orig_addr + size * length); ptr += size) {
 		struct expr *new_obj = expr_new_with(direction, EXPR_OBJECT);

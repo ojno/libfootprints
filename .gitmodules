@@ -1,0 +1,6 @@
+[submodule "src/ocaml/ocaml-ctypes"]
+	path = src/ocaml/ocaml-ctypes
+	url = https://github.com/ocamllabs/ocaml-ctypes
+[submodule "src/ocaml/ocaml-bytes"]
+	path = src/ocaml/ocaml-bytes
+	url = https://github.com/chambart/ocaml-bytes
