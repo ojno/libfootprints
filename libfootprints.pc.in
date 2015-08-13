@@ -12,4 +12,4 @@ Description: Parsing and evaluating dwarfidl memory footprint expressions and ma
 Version: 0.1
 Requires: dwarfidl liballocs
 Cflags: -I${includedir}/libfootprints
-Libs: -L${libdir} -lfootprints
+Libs: -L${libdir} -lfootprints -lfootprints_syscalls
