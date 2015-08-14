@@ -42,7 +42,7 @@ struct expr *eval_footprint_expr(struct evaluator_state *state, struct expr* e, 
 		return eval_binary_op(state, e, env);
 	} break;
 	case EXPR_UNARY: {
-		return eval_binary_op(state, e, env);
+		return eval_unary_op(state, e, env);
 	} break;
 	case EXPR_IDENT: {
 		return eval_ident(state, e, env);
