@@ -17,13 +17,13 @@
 
 struct expr *eval_footprint_expr(struct evaluator_state *state, struct expr* e, struct env_node *env) {
 	assert(e);
-	fprintf(stderr, "== eval_footprint_expr called with expr = %s (type = %s), env = ", print_expr_tree(e), expr_types_str[e->type]);
+	fpdebug(state, "== eval_footprint_expr called with expr = %s (type = %s), env = ", print_expr_tree(e), expr_types_str[e->type]);
 	struct env_node *current = env;
 	while (current != NULL) {
-		fprintf(stderr, "%s%s", current->name, (current->next == NULL ? "" : ", "));
+		fpdebug(state, "%s%s", current->name, (current->next == NULL ? "" : ", "));
 		current = current->next;
 	}
-	fprintf(stderr, "\n");
+	fpdebug(state, "\n");
 	switch (e->type) {
 	case EXPR_VOID:
 	case EXPR_VALUE:
@@ -70,8 +70,8 @@ struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struc
 			o.type = func->contained[i+1].ptr;
 			o.addr = arg_values + i;
 			o.direct = true;
-			//fprintf(stderr, "created arg %s with type %s and typed value 0x%lx from untyped 0x%lx\n", footprint->arg_names[i], o.type->name, object_to_value(state, o), arg_values[i]);
-			env = env_new_with(footprint->arg_names[i], construct_object(o, FP_DIRECTION_UNKNOWN), env);
+			//fpdebug(state, "created arg %s with type %s and typed value 0x%lx from untyped 0x%lx\n", footprint->arg_names[i], o.type->name, object_to_value(state, o), arg_values[i]);
+			env = env_new_with(footprint->arg_names[i], construct_object(o, FP_DIRECTION_READWRITE), env);
 		}
 	}
 
@@ -81,7 +81,7 @@ struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struc
 		return state;
 	} else {
 		// eval_footprint_expr will modify *state
-		struct expr *evaled = eval_footprint_expr(state, construct_union(footprint->exprs, FP_DIRECTION_UNKNOWN), env);
+		struct expr *evaled = eval_footprint_expr(state, construct_union(footprint->exprs, FP_DIRECTION_READWRITE), env);
 
 		if (state->need_memory_extents == NULL) {
 			struct union_node *result;
@@ -134,7 +134,7 @@ struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struc
 struct evaluator_state *eval_footprints_for(struct evaluator_state *state, struct footprint_node *footprints, struct env_node *defined_functions, const char *name, struct uniqtype *func, long int arg_values[6]) {
 	struct footprint_node *fp = get_footprints_for(footprints, name);
 	if (fp != NULL) {
-		fprintf(stderr, "Evaling footprint for %s(0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx)\n", name, arg_values[0], arg_values[1], arg_values[2], arg_values[3], arg_values[4], arg_values[5]);
+		fpdebug(state, "Evaling footprint for %s(0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx)\n", name, arg_values[0], arg_values[1], arg_values[2], arg_values[3], arg_values[4], arg_values[5]);
 		struct evaluator_state *result = eval_footprint_with(state, fp, defined_functions, func, arg_values, true, FP_DIRECTION_READWRITE);
 		return result;
 	} else {

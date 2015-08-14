@@ -114,6 +114,7 @@ struct evaluator_state {
 	struct data_extent_node *have_memory_extents;
 	struct union_node *result;
 	_Bool finished;
+	_Bool debug;
 };
 
 struct footprint_node {

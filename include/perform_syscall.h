@@ -25,10 +25,11 @@ struct syscall_state {
 	struct extent_node *need_memory_extents;
 	struct data_extent_node *write_extents;
 	_Bool finished;
+	_Bool debug;
 };
 
 struct syscall_state *syscall_state_new();
-struct syscall_state *syscall_state_new_with(struct syscall_env *syscall_env, struct evaluator_state *eval, struct footprint_node *footprint, size_t syscall_num, long int syscall_args[6], char *syscall_name, long int retval, _Bool finished);
+struct syscall_state *syscall_state_new_with(struct syscall_env *syscall_env, struct evaluator_state *eval, struct footprint_node *footprint, size_t syscall_num, long int syscall_args[6], char *syscall_name, long int retval, _Bool finished, _Bool debug);
 void syscall_state_free(struct syscall_state **state);
 
 _Bool load_syscall_footprints_from_file(const char *filename, struct syscall_env *out);

@@ -8,6 +8,12 @@
 #include "footprints_enums.h"
 #include "footprints_types.h"
 
+#define fpdebug(state, fmt, ...) do {	  \
+		if ((state)->debug) { \
+			fprintf(stderr, fmt, ## __VA_ARGS__); \
+		} \
+	} while (0)
+
 
 ////////////////////////////////////////////////////////////
 // parser
@@ -39,7 +45,7 @@ struct evaluator_state *eval_footprints_for(struct evaluator_state *state, struc
 struct evaluator_state *eval_footprint_with(struct evaluator_state *state, struct footprint_node *footprint, struct env_node *defined_functions, struct uniqtype *func, long int arg_values[6], _Bool merge_extents, enum footprint_direction filter_direction);
 
 struct evaluator_state *evaluator_state_new();
-struct evaluator_state *evaluator_state_new_with(struct expr *expr, struct env_node *toplevel_env, struct extent_node *need_memory_extents, struct data_extent_node *have_memory_extents, struct union_node *result, _Bool finished);
+struct evaluator_state *evaluator_state_new_with(struct expr *expr, struct env_node *toplevel_env, struct extent_node *need_memory_extents, struct data_extent_node *have_memory_extents, struct union_node *result, _Bool finished, _Bool debug);
 
 struct expr *eval_footprint_expr(struct evaluator_state *state, struct expr *e, struct env_node *env);
 

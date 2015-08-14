@@ -49,20 +49,20 @@ char *print_footprint_extents(struct footprint_node *fp, struct union_node *exte
 }
 
 
-void print_tree_types(void *ptr) {
+/*void print_tree_types(void *ptr) {
 	ANTLR3_BASE_TREE *ast = (ANTLR3_BASE_TREE*)ptr;
-	fprintf(stderr, "(%d[%s] ", GET_TYPE(ast), CCP(GET_TEXT(ast)));
+	fpdebug(state, "(%d[%s] ", GET_TYPE(ast), CCP(GET_TEXT(ast)));
 	_Bool first = true;
 	FOR_ALL_CHILDREN(ast) {
 		if (first) {
 			first = false;
 		} else {
-			fprintf(stderr, " ");
+			fpdebug(state, " ");
 		}
 		print_tree_types(n);
 	}
-	fprintf(stderr, ")");
-}
+	fpdebug(state, ")");
+	}*/
 
 static inline char *dir(struct expr *e) {
 	switch (e->direction) {

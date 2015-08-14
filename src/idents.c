@@ -66,12 +66,12 @@ struct expr *lookup_in_env(struct env_node *env, char *ident) {
 	struct env_node *current = env;
 	while (current != NULL) {
 		if (strcmp(ident, current->name) == 0) {
-			fprintf(stderr, "looked up %s and found an %s", ident, expr_types_str[current->expr->type]);
+//			fpdebug(state, "looked up %s and found an %s", ident, expr_types_str[current->expr->type]);
 			if (current->expr->type == EXPR_VALUE) {
-				fprintf(stderr, " with value %ld", current->expr->value);
+//				fpdebug(state, " with value %ld", current->expr->value);
 			}
-			fprintf(stderr, "\n");
-//			   fprintf(stderr, "looked up %s and found %p\n", ident, (void*) object_to_value(state, current->value));
+//			fpdebug(state, "\n");
+//			   fpdebug(state, "looked up %s and found %p\n", ident, (void*) object_to_value(state, current->value));
 			return current->expr;
 		}
 		current = current->next;

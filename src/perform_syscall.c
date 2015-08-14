@@ -30,7 +30,7 @@ struct syscall_state *syscall_state_new() {
 	return result;
 }
 
-struct syscall_state *syscall_state_new_with(struct syscall_env *syscall_env, struct evaluator_state *eval, struct footprint_node *footprint, size_t syscall_num, long int syscall_args[6], char *syscall_name, long int retval, _Bool finished) {
+struct syscall_state *syscall_state_new_with(struct syscall_env *syscall_env, struct evaluator_state *eval, struct footprint_node *footprint, size_t syscall_num, long int syscall_args[6], char *syscall_name, long int retval, _Bool finished, _Bool debug) {
 	struct syscall_state *result = syscall_state_new();
 	result->syscall_env = syscall_env;
 	result->eval = eval;
@@ -42,6 +42,7 @@ struct syscall_state *syscall_state_new_with(struct syscall_env *syscall_env, st
 	result->syscall_name = syscall_name;
 	result->retval = retval;
 	result->finished = finished;
+	result->debug = debug;
 	return result;
 }
 
@@ -201,7 +202,7 @@ void *map_extent(struct evaluator_state *state,
 	struct extent extent = expr->extent;
 	void *result_ptr;
 
-	fprintf(stderr, "map_extent called with %s\n", print_expr_tree(construct_extent(extent.base, extent.length, FP_DIRECTION_UNKNOWN)));
+	fpdebug(state, "map_extent called with %s\n", print_expr_tree(construct_extent(extent.base, extent.length, FP_DIRECTION_UNKNOWN)));
 	
 	if (defined_position == NULL) {
 		result_ptr = malloc(extent.length);
@@ -223,7 +224,7 @@ void *map_object(struct evaluator_state *state,
 	assert(expr->type == EXPR_OBJECT);
 	struct object obj = expr->object;
 	assert(UNIQTYPE_HAS_KNOWN_LENGTH(obj.type));
-	fprintf(stderr, "map_object called with %s\n", print_expr_tree(construct_object(obj, FP_DIRECTION_UNKNOWN)));
+	fpdebug(state, "map_object called with %s\n", print_expr_tree(construct_object(obj, FP_DIRECTION_UNKNOWN)));
 	if (UNIQTYPE_IS_POINTER_TYPE(obj.type)) {
 		// we shouldn't have mapped this already
 		assert(translate_pointer(*mapped_guest, *mapped_host, (size_t)obj.addr, 0) == 0);
@@ -392,13 +393,13 @@ _Bool do_map_pass(struct evaluator_state *state,
 		return false;
 	}
 
-	fprintf(stderr, "do_map_pass called with %s\n", print_expr_tree(construct_union(*read_footprint, FP_DIRECTION_UNKNOWN)));
+	fpdebug(state, "do_map_pass called with %s\n", print_expr_tree(construct_union(*read_footprint, FP_DIRECTION_UNKNOWN)));
 
 	_Bool modified = false;
 	struct union_node *prev = NULL, *current = NULL, *next = NULL;
 
 	if ((*read_footprint)->adjacent) {
-		fprintf(stderr, "do_map_pass processing adjacent union\n");
+		fpdebug(state, "do_map_pass processing adjacent union\n");
 		/* We assume the read footprint is already sorted by increasing guest address */
 		size_t base = _find_lowest_addr(*read_footprint);
 		size_t total_length = _find_total_length(base, *read_footprint);
@@ -451,7 +452,7 @@ _Bool do_map_pass(struct evaluator_state *state,
 			current = next;
 		}
 	} else {
-		fprintf(stderr, "do_map_pass processing normal union\n");
+		fpdebug(state, "do_map_pass processing normal union\n");
 		current = *read_footprint;
 		while (current != NULL) {
 			next = current->next;
@@ -557,18 +558,18 @@ void perform_syscall(struct syscall_state *state) {
 		}
 	}
 
-	fprintf(stderr, "### PERFORMING SYSCALL %d (%s)\n", state->syscall_num, syscall_names[state->syscall_num]);
-	fprintf(stderr, "### original args: 0x%16lx 0x%16lx 0x%16lx 0x%16lx 0x%16lx 0x%16lx\n",
+	fpdebug(state, "### PERFORMING SYSCALL %d (%s)\n", state->syscall_num, syscall_names[state->syscall_num]);
+	fpdebug(state, "### original args: 0x%16lx 0x%16lx 0x%16lx 0x%16lx 0x%16lx 0x%16lx\n",
 	        state->syscall_args[0], state->syscall_args[1], state->syscall_args[2],
 	        state->syscall_args[3], state->syscall_args[4], state->syscall_args[5]);
-	fprintf(stderr, "### rewritten args: 0x%16lx 0x%16lx 0x%16lx 0x%16lx 0x%16lx 0x%16lx\n",
+	fpdebug(state, "### rewritten args: 0x%16lx 0x%16lx 0x%16lx 0x%16lx 0x%16lx 0x%16lx\n",
 	        rewritten_syscall_args[0], rewritten_syscall_args[1], rewritten_syscall_args[2],
 	        rewritten_syscall_args[3], rewritten_syscall_args[4], rewritten_syscall_args[5]);
 	
 	state->retval = do_syscall6(state->syscall_num, rewritten_syscall_args);
 	state->finished = true;
 	
-	fprintf(stderr, "### returned 0x%16lx\n", state->retval);
+	fpdebug(state, "### returned 0x%16lx\n", state->retval);
 
 	struct evaluator_state *write_eval = eval_footprint_with(state->eval,
 	                                                         state->footprint,
@@ -582,7 +583,7 @@ void perform_syscall(struct syscall_state *state) {
 
 	translate_write_extents(write_eval->result, mapped_guest, mapped_host, &(state->write_extents));
 
-	fprintf(stderr, "### write extents: %s\n", print_data_extents(state->write_extents));
+	fpdebug(state, "### write extents: %s\n", print_data_extents(state->write_extents));
 }
 
 void do_eval_pass(struct syscall_state *state) {
@@ -618,7 +619,8 @@ struct evaluator_state *evaluator_state_new_with(struct expr *expr,
                                                  struct extent_node *need_memory_extents,
                                                  struct data_extent_node *have_memory_extents,
                                                  struct union_node *result,
-                                                 _Bool finished) {
+                                                 _Bool finished,
+                                                 _Bool debug) {
 	struct evaluator_state *retval = evaluator_state_new();
 	retval->expr = expr;
 	retval->toplevel_env = toplevel_env;
@@ -626,6 +628,7 @@ struct evaluator_state *evaluator_state_new_with(struct expr *expr,
 	retval->have_memory_extents = have_memory_extents;
 	retval->result = result;
 	retval->finished = finished;
+	retval->debug = debug;
 	return retval;
 }
 
@@ -634,13 +637,14 @@ struct syscall_state *start_syscall(struct syscall_env *syscall_env, size_t sysc
 	char *syscall_name = (char*)syscall_names[syscall_num];
 	struct footprint_node *footprint = get_footprints_for(syscall_env->footprints, syscall_name);
 	assert(footprint);
-	struct evaluator_state *eval = evaluator_state_new_with(construct_union(footprint->exprs, FP_DIRECTION_UNKNOWN),
+	struct evaluator_state *eval = evaluator_state_new_with(construct_union(footprint->exprs, FP_DIRECTION_READWRITE),
 	                                                        syscall_env->defined_functions,
 	                                                        NULL,
 	                                                        NULL,
 	                                                        NULL,
+	                                                        false, 
 	                                                        false);
-	struct syscall_state *state = syscall_state_new_with(syscall_env, eval, footprint, syscall_num, syscall_args, syscall_name, 0, false);
+	struct syscall_state *state = syscall_state_new_with(syscall_env, eval, footprint, syscall_num, syscall_args, syscall_name, 0, false, false);
 	do_eval_pass(state);
 	if (state->eval->finished && state->need_memory_extents == NULL) {
 		// this syscall has no read footprint

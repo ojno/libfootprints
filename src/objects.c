@@ -42,13 +42,13 @@ int64_t transmogrify_pointer(struct uniqtype *type, void *bytes) {
 void *_find_in_cache(struct evaluator_state *state, size_t addr, size_t size) {
 	// traverse the have_extents list looking for what we need
 	struct data_extent_node *current = state->have_memory_extents;
-	fprintf(stderr, "looking in cache for memory extent base = 0x%16lx, length = 0x%8x\n", (size_t)addr, size);
+	fpdebug(state, "looking in cache for memory extent base = 0x%16lx, length = 0x%8x\n", (size_t)addr, size);
 	while (current != NULL) {
-		fprintf(stderr, "considering base = 0x%16lx, length = 0x%16lx\n", current->extent.base, current->extent.length);
+		fpdebug(state, "considering base = 0x%16lx, length = 0x%16lx\n", current->extent.base, current->extent.length);
 		if ((size_t)addr >= current->extent.base
 		    && ((size_t)addr + size) <= (current->extent.base + current->extent.length)) {
 			// this extent contains it
-			fprintf(stderr, "found it in base = 0x%16lx, length = 0x%16lx\n", current->extent.base, current->extent.length);
+			fpdebug(state, "found it in base = 0x%16lx, length = 0x%16lx\n", current->extent.base, current->extent.length);
 			return (void*)(current->extent.data + (((size_t)addr) - current->extent.base));
 		}
 		current = current->next;
@@ -64,11 +64,11 @@ _Bool object_to_value(struct evaluator_state *state, struct object object, int64
 	void *addr = object.addr;
 	assert(UNIQTYPE_HAS_KNOWN_LENGTH(type));
 
-	fprintf(stderr, "trying to object_to_value a '%s' at 0x%16lx (direct: %s)\n",
+	fpdebug(state, "trying to object_to_value a '%s' at 0x%16lx (direct: %s)\n",
 	        type->name, (size_t)addr, (object.direct ? "yes" : "no"));
 
 	if (object.direct) {
-		fprintf(stderr, "it's direct, just dereferencing it\n");
+		fpdebug(state, "it's direct, just dereferencing it\n");
 		*out_result = transmogrify_pointer(type, addr);
 		return true;
 	} else {
@@ -77,7 +77,7 @@ _Bool object_to_value(struct evaluator_state *state, struct object object, int64
 			*out_result = transmogrify_pointer(type, bytes);
 			return true;
 		} else {
-			fprintf(stderr, "DIDN'T find it, adding to need_memory_extents and returning unevaluated\n");
+			fpdebug(state, "DIDN'T find it, adding to need_memory_extents and returning unevaluated\n");
 			state->need_memory_extents = extent_node_new_with((size_t) addr, type->pos_maxoff, state->need_memory_extents);
 			return false;
 		}
