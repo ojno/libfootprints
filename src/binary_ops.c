@@ -32,6 +32,46 @@ const char *binary_ops_str[] = {
 	"called with"
 };
 
+void set_direction_recursive(struct expr* e, enum footprint_direction direction) {
+	assert(e);
+	e->direction = direction;
+ 	switch (e->type) {
+	case EXPR_FOR: {
+		set_direction_recursive(e->for_loop.body, direction);
+		set_direction_recursive(e->for_loop.over, direction);
+	} break;
+	case EXPR_IF: {
+		set_direction_recursive(e->if_cond.cond, direction);
+		set_direction_recursive(e->if_cond.then, direction);
+		set_direction_recursive(e->if_cond.otherwise, direction);
+	} break;
+	case EXPR_BINARY: {
+		set_direction_recursive(e->binary_op.left, direction);
+		set_direction_recursive(e->binary_op.right, direction);
+	} break;
+	case EXPR_UNARY: {
+		set_direction_recursive(e->unary_op.arg, direction);
+	} break;
+	case EXPR_SUBSCRIPT: {
+		set_direction_recursive(e->subscript.target, direction);
+		set_direction_recursive(e->subscript.from, direction);
+		if (e->subscript.to) set_direction_recursive(e->subscript.to, direction);
+	} break;
+	case EXPR_FUNCTION_ARGS:
+	case EXPR_UNION: {
+		struct union_node *current = e->unioned;
+		while (current != NULL) {
+			set_direction_recursive(current->expr, direction);
+			current = current->next;
+		}
+	} break;
+	default:
+		break;
+	}
+}
+
+
+
 
 struct expr *eval_binary_op(struct evaluator_state *state, struct expr* e, struct env_node *env) {
 	assert(e->type == EXPR_BINARY);
@@ -84,7 +124,7 @@ struct expr *eval_binary_op(struct evaluator_state *state, struct expr* e, struc
 		assert(current_arg_name == NULL); // not too few arguments
 		function_env = env_new_with(func.name, construct_function(func, e->direction), function_env);
 		struct expr *new_expr = expr_clone(func.expr);
-		new_expr->direction = e->direction;
+		set_direction_recursive(new_expr, e->direction);
 		return eval_footprint_expr(state, new_expr, function_env);
 	} break;
 	default: {
